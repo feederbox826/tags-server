@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3'
-import { UUID } from 'crypto'
+import { miniMD5 } from '../util/miniMD5.js'
 
-const db = new Database('stasahpp.db')
+const db = new Database('stashapp.db')
 db.pragma('journal_mode = WAL')
 
 type stashAppDbTag = {
@@ -9,7 +9,7 @@ type stashAppDbTag = {
   id: number,
   ignore: boolean,
   path?: string | null,
-  md5?: string | null
+  md5?: miniMD5 | null
 }
 
 export async function initDB() {
@@ -41,13 +41,18 @@ export async function closeDB() {
 
 // END declarations
 
-export async function upsertTag(name: string, id: string, ignore: boolean, path?: string | null): Promise<void> {
-  db.prepare(`INSERT INTO tags (name, id, ignore, path) VALUES (?, ?, ?, ?)
+export async function upsertTag(name: string, id: string, ignore: boolean, path?: string | null, md5?: string | null): Promise<void> {
+  db.prepare(`INSERT INTO tags (name, id, ignore, path, md5) VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
-    name=excluded.name, ignore=excluded.ignore, path=excluded.path`)
-    .run(name, Number(id), ignore ? 1 : 0, path || null)
+    name=excluded.name, ignore=excluded.ignore, path=excluded.path, md5=excluded.md5`)
+    .run(name, Number(id), ignore ? 1 : 0, path || null, md5 || null)
 }
 
 export async function setMD5(path: string, md5: string): Promise<void> {
   db.prepare(`UPDATE tags SET md5 = ? WHERE path = ?`).run(md5, path)
+}
+
+export async function getTagByID(id: number): Promise<stashAppDbTag | null> {
+  const row = db.prepare(`SELECT * FROM tags WHERE id = ?`).get(id)
+  return row ? row as stashAppDbTag : null
 }

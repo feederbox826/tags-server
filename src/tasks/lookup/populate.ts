@@ -1,4 +1,6 @@
 // run interactively as a test
+import debug from 'debug'
+const log = debug('tags:tasks:lookup:populate')
 
 // set up db
 import { getStashTag } from '../../api/stashdb.js';
@@ -19,7 +21,7 @@ for (const name of names) {
   if (stashDBRes) {
     // add to db
     await upsertTag(stashDBRes.id, stashDBRes.name, stashDBRes.aliases)
-    console.log(`Upserted tag: ${stashDBRes.name} (${stashDBRes.id}) with aliases: ${stashDBRes.aliases.join(", ")}`)
+    log(`Upserted tag: ${stashDBRes.name} (${stashDBRes.id}) with aliases: ${stashDBRes.aliases.join(", ")}`)
     // add to fuse index
     fuseArr.push({ name, aliases: stashDBRes.aliases ? stashDBRes.aliases : [] })
   }
