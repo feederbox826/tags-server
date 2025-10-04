@@ -1,0 +1,17 @@
+{
+	"dependencies": {
+		"@aws-lite/s3": "^0.2.6",
+		"axios": "^1.12.2",
+		"better-sqlite3": "^12.4.1",
+		"dotenv": "^17.2.3",
+		"fastify": "^5.6.1"
+	},
+	"devDependencies": {
+		"@aws-lite/s3-types": "^0.2.6",
+		"@tsconfig/node22": "^22.0.2",
+		"@types/better-sqlite3": "^7.6.13",
+		"@types/node": "^24.6.2"
+	},
+	"type": "module",
+	"packageManager": "pnpm@10.17.1+sha512.17c560fca4867ae9473a3899ad84a88334914f379be46d455cbf92e5cf4b39d34985d452d2583baf19967fa76cb5c17bc9e245529d0b98745721aa7200ecaf7a"
+}

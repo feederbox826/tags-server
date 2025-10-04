@@ -1,0 +1,72 @@
+import Database from 'better-sqlite3'
+import { UUID } from 'crypto'
+import { cleanFileName } from '../util/cleanFilename.js'
+
+type LookupEntry = {
+  stashid: UUID,
+  name: string
+}
+
+type AliasEntry = {
+  alias: string,
+  stashid: UUID
+}
+
+const db = new Database('lookup.db')
+db.pragma('journal_mode = WAL')
+
+export async function initDB() {
+  // lookup table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS lookup (
+      stashid UUID PRIMARY KEY,
+      name TEXT NOT NULL,
+      filename TEXT NOT NULL
+    );
+  `)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_name ON lookup (name);`)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_stashid ON lookup (stashid);`)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_filename ON lookup (filename);`)
+  // alias reverse lookup
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS alias_lookup (
+      alias TEXT PRIMARY KEY,
+      stashid UUID NOT NULL,
+      FOREIGN KEY (stashid) REFERENCES lookup(stashid) ON DELETE CASCADE
+    );
+  `)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_alias ON alias_lookup (alias);`)
+}
+
+export async function closeDB() {
+  db.close()
+}
+
+export async function lookup(name: string): Promise<string | null> {
+  const basicLookup = db.prepare('SELECT stashid FROM lookup WHERE name = ? OR filename = ?').get(name) as LookupEntry | undefined
+  if (basicLookup) return basicLookup.stashid
+  const aliasLookup = db.prepare('SELECT stashid FROM alias_lookup WHERE alias = ?').get(name) as AliasEntry | undefined
+  if (aliasLookup) return aliasLookup.stashid
+  return null
+}
+
+
+export async function deleteTag(stashid: UUID): Promise<void> {
+  const deleteAliasStmt = db.prepare('DELETE FROM alias_lookup WHERE stashid = ?')
+  const deleteTagStmt = db.prepare('DELETE FROM lookup WHERE stashid = ?')
+  const transaction = db.transaction((id: UUID) => {
+    deleteAliasStmt.run(id)
+    deleteTagStmt.run(id)
+  })
+  transaction(stashid)
+}
+
+export async function upsertTag(stashid: UUID, name: string, aliases: string[]): Promise<void> {
+  const filename = cleanFileName(name)
+  db.prepare('INSERT INTO lookup (stashid, name, filename) VALUES (?, ?, ?) ON CONFLICT DO NOTHING').run(stashid, name, filename)
+  const alias_insert = db.prepare('INSERT INTO alias_lookup (alias, stashid) VALUES (?, ?) ON CONFLICT DO NOTHING')
+  const addAlises = db.transaction((txn_aliases: string[]) => {
+    for (const alias of txn_aliases) alias_insert.run(alias, stashid)
+  })
+  addAlises(aliases)
+}
