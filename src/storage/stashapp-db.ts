@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3'
 import { miniMD5 } from '../util/miniMD5.js'
 
-const db = new Database('stashapp.db')
+const db = new Database('db/stashapp.db')
 db.pragma('journal_mode = WAL')
 
 type stashAppDbTag = {

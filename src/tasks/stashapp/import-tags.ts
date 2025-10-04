@@ -21,7 +21,7 @@ export async function importTags() {
     // filter out default tags
     if (tag.image_path?.includes("default=true")) continue
     const etag = tag.image_path ? await getEtag(tag.image_path) : null
-    const match = await getTagByID(Number(tag.id))
+    const match = getTagByID(Number(tag.id))
     if (match && match.md5 === etag) {
       log(`Skipping ${tag.name} (${tag.id}), no change`)
       continue

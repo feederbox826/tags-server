@@ -1,6 +1,7 @@
 // run interactively as a test
 import debug from 'debug'
 const log = debug('tags:tasks:lookup:populate')
+const error = debug('tags:tasks:lookup:populate:error')
 debug.enable('tags:*')
 
 // set up db
@@ -25,7 +26,7 @@ async function loadStashAppTags() {
       upsertTag(stashDBRes.id, stashDBRes.name, stashDBRes.aliases)
       log(`Upserted tag: ${stashDBRes.name} (${stashDBRes.id}) with aliases: ${stashDBRes.aliases.join(", ")}`)
     } else {
-      log(`Tag not found in StashDB: ${tag.name}`)
+      error(`Tag not found in StashDB: ${tag.name}`)
     }
   }
   closeDB()

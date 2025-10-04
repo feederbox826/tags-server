@@ -3,7 +3,7 @@ import { UUID } from 'crypto'
 import { cleanFileName } from '../util/cleanFilename.js'
 
 
-const db = new Database('lookup.db')
+const db = new Database('db/lookup.db')
 db.pragma('journal_mode = WAL')
 
 export function initDB() {
