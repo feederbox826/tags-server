@@ -6,7 +6,7 @@ import { cleanFileName } from '../util/cleanFilename.js'
 const db = new Database('lookup.db')
 db.pragma('journal_mode = WAL')
 
-export async function initDB() {
+export function initDB() {
   // lookup table
   db.exec(`
     CREATE TABLE IF NOT EXISTS lookup (
@@ -26,7 +26,7 @@ export async function initDB() {
       FOREIGN KEY (stashid) REFERENCES lookup(stashid) ON DELETE CASCADE
     );
   `)
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_alias ON alias_lookup (alias);`)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_alias ON aliases (alias);`)
 }
 
 export async function refresh() {
@@ -51,15 +51,15 @@ type AliasEntry = {
   stashid: UUID
 }
 
-export async function lookup(name: string): Promise<string | null> {
-  const basicLookup = db.prepare('SELECT stashid FROM lookup WHERE name = ? OR filename = ?').get(name) as LookupEntry | undefined
+export function lookup(name: string): string | null {
+  const basicLookup = db.prepare('SELECT stashid FROM lookup WHERE name = ? OR filename = ?').get(name, name) as LookupEntry | undefined
   if (basicLookup) return basicLookup.stashid
   const aliasLookup = db.prepare('SELECT stashid FROM aliases WHERE alias = ?').get(name) as AliasEntry | undefined
   if (aliasLookup) return aliasLookup.stashid
   return null
 }
 
-export async function deleteTag(stashid: UUID): Promise<void> {
+export function deleteTag(stashid: UUID): void {
   const deleteAliasStmt = db.prepare('DELETE FROM aliases WHERE stashid = ?')
   const deleteTagStmt = db.prepare('DELETE FROM lookup WHERE stashid = ?')
   const transaction = db.transaction((id: UUID) => {
@@ -69,7 +69,7 @@ export async function deleteTag(stashid: UUID): Promise<void> {
   transaction(stashid)
 }
 
-export async function upsertTag(stashid: UUID, name: string, aliases: string[]): Promise<void> {
+export function upsertTag(stashid: UUID, name: string, aliases: string[]): void {
   const filename = cleanFileName(name)
   db.prepare('INSERT INTO lookup (stashid, name, filename) VALUES (?, ?, ?) ON CONFLICT DO NOTHING').run(stashid, name, filename)
   const alias_insert = db.prepare('INSERT INTO aliases (alias, stashid) VALUES (?, ?) ON CONFLICT DO NOTHING')
@@ -77,4 +77,9 @@ export async function upsertTag(stashid: UUID, name: string, aliases: string[]):
     for (const alias of txn_aliases) alias_insert.run(alias, stashid)
   })
   addAlises(aliases)
+}
+
+export function getAliases(stashid: UUID): string[] {
+  const rows: AliasEntry[] = db.prepare('SELECT alias FROM aliases WHERE stashid = ?').all(stashid) as AliasEntry[]
+  return rows.map(row => row.alias)
 }

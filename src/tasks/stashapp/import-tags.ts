@@ -15,8 +15,7 @@ const shouldIgnoreName = (name: string): boolean => {
 
 export async function importTags() {
   // initialize db
-  await initDB()
-
+  initDB()
   const tags = await getTags()
   for (const tag of tags) {
     // filter out default tags

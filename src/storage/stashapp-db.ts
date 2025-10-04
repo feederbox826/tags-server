@@ -12,7 +12,7 @@ type stashAppDbTag = {
   md5?: miniMD5 | null
 }
 
-export async function initDB() {
+export function initDB() {
   // lookup table
   db.exec(`
     CREATE TABLE IF NOT EXISTS tags (
@@ -29,30 +29,35 @@ export async function initDB() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_md5 ON tags (md5);`)
 }
 
-export async function refresh() {
+export function refresh() {
   db.exec('VACUUM;')
   db.exec('ANALYZE;')
   db.exec('PRAGMA optimize;')
 }
 
-export async function closeDB() {
+export function closeDB() {
   db.close()
 }
 
 // END declarations
 
-export async function upsertTag(name: string, id: string, ignore: boolean, path?: string | null, md5?: string | null): Promise<void> {
+export function upsertTag(name: string, id: string, ignore: boolean, path?: string | null, md5?: string | null): void {
   db.prepare(`INSERT INTO tags (name, id, ignore, path, md5) VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
     name=excluded.name, ignore=excluded.ignore, path=excluded.path, md5=excluded.md5`)
     .run(name, Number(id), ignore ? 1 : 0, path || null, md5 || null)
 }
 
-export async function setMD5(path: string, md5: string): Promise<void> {
+export function setMD5(path: string, md5: string): void {
   db.prepare(`UPDATE tags SET md5 = ? WHERE path = ?`).run(md5, path)
 }
 
-export async function getTagByID(id: number): Promise<stashAppDbTag | null> {
+export function getTagByID(id: number): stashAppDbTag | null {
   const row = db.prepare(`SELECT * FROM tags WHERE id = ?`).get(id)
   return row ? row as stashAppDbTag : null
+}
+
+export function getAllTags(): stashAppDbTag[] {
+  const rows = db.prepare(`SELECT * FROM tags`).all()
+  return rows as stashAppDbTag[]
 }

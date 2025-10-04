@@ -1,30 +1,34 @@
 // run interactively as a test
 import debug from 'debug'
 const log = debug('tags:tasks:lookup:populate')
+debug.enable('tags:*')
 
 // set up db
 import { getStashTag } from '../../api/stashdb.js';
-import { initDB, upsertTag, closeDB } from '../../storage/lookup-db.js'
-initDB()
+import { initDB, upsertTag, closeDB, lookup } from '../../storage/lookup-db.js'
+import { getAllTags } from '../../storage/stashapp-db.js';
 
-import axios from 'axios'
-
-const tagsJSON = await axios.get("https://tags.feederbox.cc/tags-export.json")
-  .then(res => res.data as any[])
-
-const fuseArr = []
-
-const names = Object.keys(tagsJSON)
-for (const name of names) {
-  // lookup name and cache
-  const stashDBRes = await getStashTag(name)
-  if (stashDBRes) {
-    // add to db
-    await upsertTag(stashDBRes.id, stashDBRes.name, stashDBRes.aliases)
-    log(`Upserted tag: ${stashDBRes.name} (${stashDBRes.id}) with aliases: ${stashDBRes.aliases.join(", ")}`)
-    // add to fuse index
-    fuseArr.push({ name, aliases: stashDBRes.aliases ? stashDBRes.aliases : [] })
+async function loadStashAppTags() {
+  initDB()
+  // load tags from stashapp
+  const stashAppTags = getAllTags()
+  for (const tag of stashAppTags) {
+    // skip ignored tags
+    if (tag.ignore) continue
+    // check if tag exists in db
+    const dbMatch = lookup(tag.name)
+    if (dbMatch) continue
+    // lookup in stashdb
+    const stashDBRes = await getStashTag(tag.name)
+    if (stashDBRes) {
+      // add to db
+      upsertTag(stashDBRes.id, stashDBRes.name, stashDBRes.aliases)
+      log(`Upserted tag: ${stashDBRes.name} (${stashDBRes.id}) with aliases: ${stashDBRes.aliases.join(", ")}`)
+    } else {
+      log(`Tag not found in StashDB: ${tag.name}`)
+    }
   }
+  closeDB()
 }
-// pull tags from json
-closeDB()
+
+loadStashAppTags()
