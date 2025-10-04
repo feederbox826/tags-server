@@ -2,7 +2,6 @@ import Database from 'better-sqlite3'
 import { UUID } from 'crypto'
 import { cleanFileName } from '../util/cleanFilename.js'
 
-
 const db = new Database('db/lookup.db')
 db.pragma('journal_mode = WAL')
 
@@ -41,12 +40,12 @@ export async function closeDB() {
 
 // END definitions
 
-type LookupEntry = {
+export type LookupEntry = {
   stashid: UUID,
   name: string
 }
 
-type AliasEntry = {
+export type AliasEntry = {
   alias: string,
   stashid: UUID
 }
