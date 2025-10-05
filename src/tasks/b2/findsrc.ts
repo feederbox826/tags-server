@@ -47,7 +47,7 @@ export async function getSourceFiles() {
       // log(`Found source file: ${b2File.fileName}`)
       localFileAddSource(localFile.path)
     } else {
-      error(`Source file missing: ${b2File.fileName}`)
+      error(`Orphaned source: ${b2File.fileName}`)
     }
   }
 }

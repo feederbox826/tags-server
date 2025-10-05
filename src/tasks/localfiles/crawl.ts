@@ -57,7 +57,7 @@ export async function crawl(directory: string): Promise<void> {
         sha1,
         md5,
         size: file.stats.size,
-        last_modified,
+        last_modified: (last_modified / 1000), // seconds
         alt: basePath.includes('\\alt\\') || basePath.includes('/alt/'),
         video: basePath.endsWith('.webm'),
         img: basePath.endsWith('.webp'),
