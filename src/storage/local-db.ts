@@ -1,6 +1,5 @@
 import Database from 'better-sqlite3'
 import { PathLike } from 'fs'
-import { MiniHash } from '../util/miniHash.js'
 
 const db = new Database('db/localfiles.db')
 db.pragma('journal_mode = WAL')
@@ -40,8 +39,8 @@ export type LocalFileEntry = {
   path: PathLike,
   filename: string,
   name: string,
-  sha1: MiniHash<'sha1'>,
-  md5: MiniHash<'md5'>,
+  sha1: string,
+  md5: string,
   size: number,
   last_modified: number,
   optimized?: boolean,

@@ -1,5 +1,4 @@
 import Database from 'better-sqlite3'
-import { MiniHash } from '../util/miniHash.js'
 
 const db = new Database('db/stashapp.db')
 db.pragma('journal_mode = WAL')
@@ -8,8 +7,8 @@ export type stashAppDbTag = {
   name: string,
   id: number,
   ignore: boolean,
-  path?: string | null,
-  md5?: MiniHash<"md5"> | null
+  path?: string,
+  md5?: string
 }
 
 export function initDB() {
@@ -39,7 +38,7 @@ export const stashAppDB = db
 
 // END declarations
 
-export function upsertTag(name: string, id: string, ignore: boolean, path?: string | null, md5?: string | MiniHash<'md5'> | null): void {
+export function upsertTag(name: string, id: string, ignore: boolean, path?: string | null, md5?: string | null): void {
   db.prepare(`INSERT INTO tags (name, id, ignore, path, md5) VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
     name=excluded.name, ignore=excluded.ignore, path=excluded.path, md5=excluded.md5`)

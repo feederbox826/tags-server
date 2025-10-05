@@ -5,7 +5,6 @@ debug.enable('tags:*')
 import { getTags, getEtag, testEtag } from '../..//api/stashapp.js'
 import { stashAppDB, stashAppDbTag, initDB, upsertTag } from '../../storage/stashapp-db.js'
 import { EXCLUDED_TAG_PREFIX } from '../../util/config.js'
-import { MiniHash } from '../../util/miniHash.js'
 
 const shouldIgnoreName = (name: string): boolean => {
   for (const prefix of EXCLUDED_TAG_PREFIX) {
@@ -19,7 +18,7 @@ function getTagByID(id: number): stashAppDbTag | null {
   return row ? row as stashAppDbTag : null
 }
 
-function setMD5(path: string, md5: string | MiniHash<'md5'>): void {
+function setMD5(path: string, md5: string): void {
   stashAppDB.prepare(`UPDATE tags SET md5 = ? WHERE path = ?`).run(md5, path)
 }
 
@@ -48,6 +47,7 @@ export async function checkTags() {
     if (!tag.image_path) continue
     const match = getTagByID(Number(tag.id))
     if (!match?.md5) continue
+    console.log(match.md5)
     const etagValid = await testEtag(tag.image_path, match.md5)
     if (!etagValid) {
       // file changed, update
@@ -58,4 +58,5 @@ export async function checkTags() {
   }
 }
 
+importTags()
 checkTags()

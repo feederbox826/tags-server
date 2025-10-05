@@ -10,7 +10,6 @@ import path from 'path'
 
 import { localDB, inittDB, LocalFileEntry } from '../../storage/local-db.js'
 import { multiHash } from '../../util/multihash.js'
-import { MiniHash } from '../../util/miniHash.js'
 
 const cleanFileName = (name: string) => name.replace(/( \(\d\))?\.\w+/, '')
 
@@ -25,8 +24,8 @@ function addLocalFiles(files: LocalFileEntry[]): void {
         file.path.toString().replace(/\\/g, '/'), // normalize to forward slashes
         file.name,
         file.filename,
-        file.sha1.value,
-        file.md5.value,
+        file.sha1,
+        file.md5,
         file.size,
         file.last_modified,
         file.alt ? 1 : 0,
@@ -55,8 +54,8 @@ export async function crawl(directory: string): Promise<void> {
         path: file.path.toString().replace(/\\/g, '/'), // normalize to forward slashes
         filename: file.name,
         name: cleanFileName(file.name),
-        sha1: sha1 as MiniHash<'sha1'>,
-        md5: md5 as MiniHash<'md5'>,
+        sha1,
+        md5,
         size: file.stats.size,
         last_modified,
         alt: basePath.includes('\\alt\\') || basePath.includes('/alt/'),
