@@ -4,7 +4,7 @@ const log = debug('tags:api:stashapp')
 import axios from 'axios'
 import { USER_AGENT, ALLOWED_MIME_TYPES } from '../util/config.js'
 import { Agent as httpsAgent } from 'https'
-import { fullMD5, miniMD5, toMiniMD5, toFullMD5 } from '../util/miniMD5.js'
+import { MiniHash, toMiniHash, toFullHash, FullHash } from '../util/miniHash.js'
 
 const stashappClient = axios.create({
   headers: { 'ApiKey': process.env.STASHAPP_API_KEY, 'User-Agent': USER_AGENT },
@@ -38,16 +38,16 @@ export async function getTags(): Promise<stashAppTag[]> {
   return response.data.data.findTags.tags
 }
 
-export async function getEtag(path: string): Promise<miniMD5 | null> {
+export async function getEtag(path: string): Promise<MiniHash<'md5'> | null> {
   const md5req = await stashappClient.get(path)
   // check mimetype before caching
   const contentType = md5req.headers['content-type'] || ''
   if (!ALLOWED_MIME_TYPES.includes(contentType)) return null
   const etag: string | undefined = md5req.headers['etag']
-  return etag ? toMiniMD5(etag.replace('"', '') as fullMD5) : null // remove quotes
+  return etag ? toMiniHash(etag.replace('"', '') as unknown as FullHash<'md5'>) : null // remove quotes
 }
 
-export async function testEtag(path: string, etag: miniMD5): Promise<boolean> {
-  const req = await stashappClient.get(path, { headers: { 'If-None-Match': `"${toFullMD5(etag)}"` } })
+export async function testEtag(path: string, etag: MiniHash<'md5'>): Promise<boolean> {
+  const req = await stashappClient.get(path, { headers: { 'If-None-Match': `"${toFullHash(etag)}"` } })
   return req.status === 304
 }

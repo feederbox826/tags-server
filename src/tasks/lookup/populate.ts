@@ -6,7 +6,7 @@ debug.enable('tags:*')
 
 // set up db
 import { getStashTag } from '../../api/stashdb.js';
-import { initDB, upsertTag, closeDB, lookup } from '../../storage/lookup-db.js'
+import { lookupDB, initDB, upsertTag, lookup } from '../../storage/lookup-db.js'
 import { getAllTags } from '../../storage/stashapp-db.js';
 
 async function loadStashAppTags() {
@@ -29,7 +29,7 @@ async function loadStashAppTags() {
       error(`Tag not found in StashDB: ${tag.name}`)
     }
   }
-  closeDB()
+  lookupDB.close()
 }
 
 loadStashAppTags()

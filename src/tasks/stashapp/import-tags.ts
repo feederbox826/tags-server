@@ -3,14 +3,24 @@ const log = debug('tags:tasks:import-tags')
 debug.enable('tags:*')
 
 import { getTags, getEtag, testEtag } from '../..//api/stashapp.js'
-import { initDB, getTagByID, upsertTag, setMD5 } from '../../storage/stashapp-db.js'
+import { stashAppDB, stashAppDbTag, initDB, upsertTag } from '../../storage/stashapp-db.js'
 import { EXCLUDED_TAG_PREFIX } from '../../util/config.js'
+import { MiniHash } from '../../util/miniHash.js'
 
 const shouldIgnoreName = (name: string): boolean => {
   for (const prefix of EXCLUDED_TAG_PREFIX) {
     if (name.startsWith(prefix)) return true
   }
   return false
+}
+
+function getTagByID(id: number): stashAppDbTag | null {
+  const row = stashAppDB.prepare(`SELECT * FROM tags WHERE id = ?`).get(id)
+  return row ? row as stashAppDbTag : null
+}
+
+function setMD5(path: string, md5: string | MiniHash<'md5'>): void {
+  stashAppDB.prepare(`UPDATE tags SET md5 = ? WHERE path = ?`).run(md5, path)
 }
 
 export async function importTags() {
@@ -36,7 +46,7 @@ export async function checkTags() {
   const tags = await getTags()
   for (const tag of tags) {
     if (!tag.image_path) continue
-    const match = await getTagByID(Number(tag.id))
+    const match = getTagByID(Number(tag.id))
     if (!match?.md5) continue
     const etagValid = await testEtag(tag.image_path, match.md5)
     if (!etagValid) {

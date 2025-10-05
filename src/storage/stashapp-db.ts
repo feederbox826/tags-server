@@ -1,15 +1,15 @@
 import Database from 'better-sqlite3'
-import { miniMD5 } from '../util/miniMD5.js'
+import { MiniHash } from '../util/miniHash.js'
 
 const db = new Database('db/stashapp.db')
 db.pragma('journal_mode = WAL')
 
-type stashAppDbTag = {
+export type stashAppDbTag = {
   name: string,
   id: number,
   ignore: boolean,
   path?: string | null,
-  md5?: miniMD5 | null
+  md5?: MiniHash<"md5"> | null
 }
 
 export function initDB() {
@@ -35,28 +35,16 @@ export function refresh() {
   db.exec('PRAGMA optimize;')
 }
 
-export function closeDB() {
-  db.close()
-}
+export const stashAppDB = db
 
 // END declarations
 
-export function upsertTag(name: string, id: string, ignore: boolean, path?: string | null, md5?: string | null): void {
+export function upsertTag(name: string, id: string, ignore: boolean, path?: string | null, md5?: string | MiniHash<'md5'> | null): void {
   db.prepare(`INSERT INTO tags (name, id, ignore, path, md5) VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
     name=excluded.name, ignore=excluded.ignore, path=excluded.path, md5=excluded.md5`)
     .run(name, Number(id), ignore ? 1 : 0, path || null, md5 || null)
 }
-
-export function setMD5(path: string, md5: string): void {
-  db.prepare(`UPDATE tags SET md5 = ? WHERE path = ?`).run(md5, path)
-}
-
-export function getTagByID(id: number): stashAppDbTag | null {
-  const row = db.prepare(`SELECT * FROM tags WHERE id = ?`).get(id)
-  return row ? row as stashAppDbTag : null
-}
-
 export function getAllTags(): stashAppDbTag[] {
   const rows = db.prepare(`SELECT * FROM tags`).all()
   return rows as stashAppDbTag[]

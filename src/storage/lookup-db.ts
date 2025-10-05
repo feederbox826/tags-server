@@ -34,9 +34,7 @@ export async function refresh() {
   db.exec('PRAGMA optimize;')
 }
 
-export async function closeDB() {
-  db.close()
-}
+export const lookupDB = db
 
 // END definitions
 
