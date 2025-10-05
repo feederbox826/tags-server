@@ -18,8 +18,8 @@ function getTagByID(id: number): stashAppDbTag | null {
   return row ? row as stashAppDbTag : null
 }
 
-function setMD5(path: string, md5: string): void {
-  stashAppDB.prepare(`UPDATE tags SET md5 = ? WHERE path = ?`).run(md5, path)
+function updateTab(id: number, path: string, md5: string): void {
+  stashAppDB.prepare(`UPDATE tags SET md5 = ?, path = ? WHERE id = ?`).run(md5, path, id)
 }
 
 export async function importTags() {
@@ -29,16 +29,32 @@ export async function importTags() {
   for (const tag of tags) {
     // filter out default tags
     if (tag.image_path?.includes("default=true")) continue
-    const etag = tag.image_path ? await getEtag(tag.image_path) : null
     const match = getTagByID(Number(tag.id))
-    if (match && match.md5 === etag) {
-      log(`Skipping ${tag.name} (${tag.id}), no change`)
-      continue
+    const etagResult = await getSetEtag(Number(tag.id), tag?.image_path ?? "", match?.md5)
+    if (etagResult) {
+      const ignore = tag.ignore_auto_tag || shouldIgnoreName(tag.name)
+      log(`Tag: ${tag.name} (${tag.id}) - µMD5: ${etagResult}`)
+      upsertTag(tag.name, tag.id, ignore, tag.image_path || null, etagResult)
     }
-    const ignore = tag.ignore_auto_tag || shouldIgnoreName(tag.name)
-    log(`Tag: ${tag.name} (${tag.id}) - µMD5: ${etag}`)
-    upsertTag(tag.name, tag.id, ignore, tag.image_path || null, etag || null)
   }
+}
+
+const getSetEtag = async (id: number, path: string, currentEtag?: string): Promise<void | string> => {
+  // check if our etag is valid
+  // skip default
+  if (path.includes("default=true")) return
+  if (!path) return
+  const etagValid = currentEtag && await testEtag(path, currentEtag)
+  if (etagValid) return
+  // get new etag
+  const newEtag = await getEtag(path)
+  if (!newEtag) {
+    log(`Failed to get eTag for ${path}`)
+    return
+  }
+  log(`Updating ETag for tag ${id} - µMD5: ${newEtag}`)
+  updateTab(id, path, newEtag)
+  return newEtag
 }
 
 export async function checkTags() {
@@ -46,17 +62,9 @@ export async function checkTags() {
   for (const tag of tags) {
     if (!tag.image_path) continue
     const match = getTagByID(Number(tag.id))
-    if (!match?.md5) continue
-    console.log(match.md5)
-    const etagValid = await testEtag(tag.image_path, match.md5)
-    if (!etagValid) {
-      // file changed, update
-      const newEtag = await getEtag(tag.image_path)
-      log(`Tag changed: ${tag.name} (${tag.id}) - µMD5: ${newEtag}`)
-      setMD5(tag.image_path, newEtag || '')
-    }
+    getSetEtag(Number(tag.id), tag.image_path, match?.md5)
   }
 }
 
-importTags()
+//importTags()
 checkTags()

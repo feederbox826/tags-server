@@ -42,7 +42,10 @@ export async function getEtag(path: string): Promise<string | null> {
   const md5req = await stashappClient.get(path)
   // check mimetype before caching
   const contentType = md5req.headers['content-type'] || ''
-  if (!ALLOWED_MIME_TYPES.includes(contentType)) return null
+  if (!ALLOWED_MIME_TYPES.includes(contentType)) {
+    log(`Rejected content-type ${contentType} for ${path}`)
+    return null
+  }
   const etag: string | undefined = md5req.headers['etag']
   return etag ? toMiniHash(etag.replace('"', '')) : null // remove quotes
 }
