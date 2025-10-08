@@ -1,9 +1,10 @@
 import debug from 'debug'
 const log = debug('tags:tasks:import-tags')
 debug.enable('tags:*')
+import { tqdm } from "ts-tqdm"
 
 import { getTags, getEtag, testEtag } from '../..//api/stashapp.js'
-import { stashAppDB, stashAppDbTag, initDB, upsertTag } from '../../storage/stashapp-db.js'
+import { stashAppDB, stashAppDbTag, initDB, upsertTag, refresh } from '../../storage/stashapp-db.js'
 import { EXCLUDED_TAG_PREFIX } from '../../util/config.js'
 
 const shouldIgnoreName = (name: string): boolean => {
@@ -18,53 +19,45 @@ function getTagByID(id: number): stashAppDbTag | null {
   return row ? row as stashAppDbTag : null
 }
 
-function updateTab(id: number, path: string, md5: string): void {
+function updateTag(id: number, path: string, md5: string): void {
   stashAppDB.prepare(`UPDATE tags SET md5 = ?, path = ? WHERE id = ?`).run(md5, path, id)
 }
 
-export async function importTags() {
-  // initialize db
+export async function checkTags() {
   initDB()
   const tags = await getTags()
-  for (const tag of tags) {
-    // filter out default tags
-    if (tag.image_path?.includes("default=true")) continue
+  for (const tag of tqdm(tags)) {
+    // preliminary ignore checks
+    if (!tag?.image_path || tag.image_path?.includes("default=true")) continue
     const match = getTagByID(Number(tag.id))
-    const etagResult = await getSetEtag(Number(tag.id), tag?.image_path ?? "", match?.md5)
-    if (etagResult) {
-      const ignore = tag.ignore_auto_tag || shouldIgnoreName(tag.name)
-      log(`Tag: ${tag.name} (${tag.id}) - µMD5: ${etagResult}`)
-      upsertTag(tag.name, tag.id, ignore, tag.image_path || null, etagResult)
+    // if match, check etag, else add
+    if (match) {
+      const validEtag = await validateEtag(match, tag.image_path)
+      if (validEtag) continue
+    }
+    // no match or if match outdated, add/update
+    const ignore = tag.ignore_auto_tag || shouldIgnoreName(tag.name)
+    const etag = await getEtag(tag.image_path)
+    if (!etag) {
+      log(`Failed to get ETag for ${tag.image_path}`)
+      continue
+    }
+    if (match) {
+      log(`Update ETag for tag ${tag.id} - µMD5: ${etag}`)
+      updateTag(Number(tag.id), tag.image_path, etag)
+      continue
+    } else {
+      log(`New tag: ${tag.name} (${tag.id}) - µMD5: ${etag}`)
+      upsertTag(tag.name, tag.id, ignore, tag.image_path || null, etag)
     }
   }
+  log(`Done. Total tags: ${tags.length}`)
+  refresh()
 }
 
-const getSetEtag = async (id: number, path: string, currentEtag?: string): Promise<void | string> => {
-  // check if our etag is valid
-  // skip default
-  if (path.includes("default=true")) return
-  if (!path) return
-  const etagValid = currentEtag && await testEtag(path, currentEtag)
-  if (etagValid) return
-  // get new etag
-  const newEtag = await getEtag(path)
-  if (!newEtag) {
-    log(`Failed to get eTag for ${path}`)
-    return
-  }
-  log(`Updating ETag for tag ${id} - µMD5: ${newEtag}`)
-  updateTab(id, path, newEtag)
-  return newEtag
+async function validateEtag(tag: stashAppDbTag, path: string): Promise<boolean> {
+  const etagValid = tag?.md5 && await testEtag(path, tag.md5)
+  return Boolean(etagValid)
 }
 
-export async function checkTags() {
-  const tags = await getTags()
-  for (const tag of tags) {
-    if (!tag.image_path) continue
-    const match = getTagByID(Number(tag.id))
-    getSetEtag(Number(tag.id), tag.image_path, match?.md5)
-  }
-}
-
-//importTags()
 checkTags()

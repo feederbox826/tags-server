@@ -41,6 +41,9 @@ importers:
       toad-scheduler:
         specifier: ^3.1.0
         version: 3.1.0
+      ts-tqdm:
+        specifier: ^0.8.6
+        version: 0.8.6
     devDependencies:
       '@tsconfig/node22':
         specifier: ^22.0.2
@@ -678,6 +681,9 @@ packages:
   toidentifier@1.0.1:
     resolution: {integrity: sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA==}
     engines: {node: '>=0.6'}
+
+  ts-tqdm@0.8.6:
+    resolution: {integrity: sha512-3X3M1PZcHtgQbnwizL+xU8CAgbYbeLHrrDwL9xxcZZrV5J+e7loJm1XrXozHjSkl44J0Zg0SgA8rXbh83kCkcQ==}
 
   tunnel-agent@0.6.0:
     resolution: {integrity: sha512-McnNiV1l8RYeY8tBgEpuodCC1mLUdbSN+CYBL7kJsJNInOP8UjDDEwdk6Mw60vdLLrr5NHKZhMAOSrR2NZuQ+w==}
@@ -1336,6 +1342,8 @@ snapshots:
       croner: 8.1.2
 
   toidentifier@1.0.1: {}
+
+  ts-tqdm@0.8.6: {}
 
   tunnel-agent@0.6.0:
     dependencies:

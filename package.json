@@ -10,7 +10,8 @@
 		"dotenv": "^17.2.3",
 		"fastify": "^5.6.1",
 		"image-size": "^2.0.2",
-		"toad-scheduler": "^3.1.0"
+		"toad-scheduler": "^3.1.0",
+		"ts-tqdm": "^0.8.6"
 	},
 	"devDependencies": {
 		"@tsconfig/node22": "^22.0.2",
