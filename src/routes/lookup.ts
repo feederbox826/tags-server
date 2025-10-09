@@ -1,7 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 
-import { lookupDB, lookup, getName } from '../storage/lookup-db.js'
-import { localDB, LocalFileEntry } from '../storage/local-db.js'
+import { lookup, getName } from '../storage/lookup-db.js'
 import { UUID } from 'crypto'
 import { MEDIA_HOSTNAME } from '../util/config.js'
 

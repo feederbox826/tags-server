@@ -15,14 +15,16 @@ export function inittDB() {
       md5 TEXT NOT NULL,
       size INTEGER NOT NULL,
       last_modified INTEGER NOT NULL,
-      optimized BOOLEAN NOT NULL DEFAULT 0,
-      source BOOLEAN NOT NULL DEFAULT 0,
+      src BOOLEAN NOT NULL DEFAULT 0,
       alt BOOLEAN NOT NULL DEFAULT 0,
-      video BOOLEAN NOT NULL DEFAULT 0,
-      imge BOOLEAN NOT NULL DEFAULT 0
+      vid BOOLEAN NOT NULL DEFAULT 0,
+      img BOOLEAN NOT NULL DEFAULT 0,
+      svg BOOLEAN NOT NULL DEFAULT 0,
+      height INTEGER DEFAULT 0
     )`)
   db.exec(`CREATE INDEX IF NOT EXISTS idx_name ON localfiles (name);`)
   db.exec(`CREATE INDEX IF NOT EXISTS idx_sha1 ON localfiles (sha1);`)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_md5 ON localfiles (md5);`)
 }
 
 export async function refresh() {
@@ -40,10 +42,9 @@ export type LocalFileEntry = {
   md5: string,
   size: number,
   last_modified: number,
-  optimized?: boolean,
-  source?: boolean,
+  src?: boolean,
   alt: boolean,
-  video: boolean,
+  vid: boolean,
   img: boolean,
   svg: boolean
   height?: number,
