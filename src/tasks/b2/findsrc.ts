@@ -14,7 +14,7 @@ function getLocalFileByPath(path: string): LocalFileEntry | null {
 }
 
 function localFileAddSource(path: string | PathLike): void {
-  localDB.prepare('UPDATE localfiles SET source = 1 WHERE path = ?').run(path)
+  localDB.prepare('UPDATE localfiles SET src = 1 WHERE path = ?').run(path)
 }
 
 type partialB2File = {

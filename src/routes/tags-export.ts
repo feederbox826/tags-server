@@ -1,3 +1,8 @@
+import { localDB, LocalFileEntry } from "../storage/local-db.js"
+import { lookupDB, LookupEntry } from "../storage/lookup-db.js"
+import { stashAppDB } from "../storage/stashapp-db.js"
+import { FastifyRequest, FastifyReply } from "fastify"
+
 type tagMedia = {
   name: string,
   alt: boolean,
@@ -15,13 +20,10 @@ type exportTag = {
 
 type exportTags = Record<string, exportTag[]>
 
-import { localDB, LocalFileEntry } from "../storage/local-db.js"
-import { lookupDB, LookupEntry } from "../storage/lookup-db.js"
-import { stashAppDB } from "../storage/stashapp-db.js"
 
 const createMediaType = (file: LocalFileEntry): tagMedia => ({
-  name: file.name,
-  alt: file.alt,
+  name: file.filename,
+  alt: Boolean(file.alt),
   source: Boolean(file.src),
   height: file.svg ? "∞" : file.height || undefined
 })
@@ -49,6 +51,12 @@ function createExport(): exportTags {
       const stashappIgnore = stashAppDB.prepare(`SELECT ignore FROM tags WHERE name = ?`).get(lookup.name) as { ignore: number } | undefined
       tagEntry.ignore = Boolean(stashappIgnore?.ignore ?? false)
     }
+    exportObj[entry.name] = [tagEntry as exportTag]
   }
   return exportObj
+}
+
+export async function tagsExportHandler(request: FastifyRequest, reply: FastifyReply) {
+  const exportObj = createExport()
+  return reply.send(exportObj)
 }

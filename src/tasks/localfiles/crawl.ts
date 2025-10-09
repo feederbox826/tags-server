@@ -16,8 +16,8 @@ const cleanFileName = (name: string) => name.replace(/( \(\d\))?\.\w+/, '')
 
 function addLocalFiles(files: LocalFileEntry[]): void {
   const insert = localDB.prepare(`
-    INSERT OR REPLACE INTO localfiles (path, name, filename, sha1, md5, size, last_modified, alt, video, imge)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO localfiles (path, name, filename, sha1, md5, size, last_modified, alt, vid, img, svg)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   const insertMany = localDB.transaction((files: LocalFileEntry[]) => {
     for (const file of files) {
@@ -31,7 +31,8 @@ function addLocalFiles(files: LocalFileEntry[]): void {
         file.last_modified,
         file.alt ? 1 : 0,
         file.vid ? 1 : 0,
-        file.img ? 1 : 0
+        file.img ? 1 : 0,
+        file.svg ? 1 : 0,
       )
     }
   })

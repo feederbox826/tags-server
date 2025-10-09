@@ -49,12 +49,6 @@ export type AliasEntry = {
   stashid: UUID
 }
 
-export function getName(stashid: UUID): string | null {
-  const row: LookupEntry | undefined = db.prepare('SELECT name FROM lookup WHERE stashid = ?').get(stashid) as LookupEntry | undefined
-  if (row) return row.name
-  return null
-}
-
 export function lookup(name: string): string | null {
   const basicLookup = db.prepare('SELECT stashid FROM lookup WHERE name = ? OR filename = ?').get(name, name) as LookupEntry | undefined
   if (basicLookup) return basicLookup.stashid
