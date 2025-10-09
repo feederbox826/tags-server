@@ -30,9 +30,6 @@ export async function refresh() {
   db.exec('ANALYZE;')
   db.exec('PRAGMA optimize;')
 }
-
-export const lookupDB = db
-
 // END definitions
 
 export type LocalFileEntry = {

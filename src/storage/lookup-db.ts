@@ -10,22 +10,22 @@ export function initDB() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS lookup (
       stashid UUID PRIMARY KEY,
-      name TEXT NOT NULL,
+      name TEXT NOT NULL COLLATE NOCASE,
       filename TEXT NOT NULL
     );
   `)
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_name ON lookup (name);`)
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_stashid ON lookup (stashid);`)
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_filename ON lookup (filename);`)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_name ON lookup (name COLLATE NOCASE);`)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_stashid ON lookup (stashid COLLATE NOCASE);`)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_filename ON lookup (filename COLLATE NOCASE);`)
   // alias reverse lookup
   db.exec(`
     CREATE TABLE IF NOT EXISTS aliases (
-      alias TEXT PRIMARY KEY,
+      alias TEXT PRIMARY KEY COLLATE NOCASE,
       stashid UUID NOT NULL,
       FOREIGN KEY (stashid) REFERENCES lookup(stashid) ON DELETE CASCADE
     );
   `)
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_alias ON aliases (alias);`)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_alias ON aliases (alias COLLATE NOCASE);`)
 }
 
 export async function refresh() {
@@ -40,12 +40,19 @@ export const lookupDB = db
 
 export type LookupEntry = {
   stashid: UUID,
-  name: string
+  name: string,
+  filename: string,
 }
 
 export type AliasEntry = {
   alias: string,
   stashid: UUID
+}
+
+export function getName(stashid: UUID): string | null {
+  const row: LookupEntry | undefined = db.prepare('SELECT name FROM lookup WHERE stashid = ?').get(stashid) as LookupEntry | undefined
+  if (row) return row.name
+  return null
 }
 
 export function lookup(name: string): string | null {
