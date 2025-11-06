@@ -7,12 +7,31 @@ import { tqdm } from "ts-tqdm"
 
 import * as fsWalk from '@nodelib/fs.walk'
 import { imageSizeFromFile } from 'image-size/fromFile'
+import fs from 'fs/promises'
 import path from 'path'
 
 import { localDB, inittDB, LocalFileEntry } from '../../storage/local-db.js'
 import { multiHash } from '../../util/multihash.js'
 
 const cleanFileName = (name: string) => name.replace(/( \(\d\))?\.\w+/, '')
+
+function checkLocalFiles(path: string): void {
+  const files = localDB.prepare(`SELECT path, last_modified FROM localfiles`).all() as LocalFileEntry[]
+  for (const file of files) {
+    const fullPath = path + '/' + file.path
+    // check if file exists
+    fs.stat(fullPath)
+      .catch(e => {
+        if (e.code === 'ENOENT') {
+          log(`File missing, removing from DB: ${file.path}`)
+          // remove from db
+          localDB.prepare(`DELETE FROM localfiles WHERE path = ?`).run(file.path)
+        } else {
+          log(`Error checking file ${file.path}: ${e.message}`)
+        }
+      })
+  }
+}
 
 function addLocalFiles(files: LocalFileEntry[]): void {
   const insert = localDB.prepare(`
@@ -101,5 +120,7 @@ export async function crawl(directory: string): Promise<void> {
   }
   // add to database
   addLocalFiles(fileEntries)
+  // check for missing files
+  checkLocalFiles(directory)
 }
 crawl(FILE_PATH)
