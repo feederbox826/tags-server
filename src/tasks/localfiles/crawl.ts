@@ -123,4 +123,4 @@ export async function crawl(directory: string): Promise<void> {
   // check for missing files
   checkLocalFiles(directory)
 }
-crawl(FILE_PATH)
+// crawl(FILE_PATH)

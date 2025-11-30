@@ -51,4 +51,4 @@ export async function getSourceFiles() {
     }
   }
 }
-getSourceFiles()
+// getSourceFiles()

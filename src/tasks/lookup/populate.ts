@@ -9,7 +9,7 @@ import { getStashTag } from '../../api/stashdb.js';
 import { lookupDB, initDB, upsertTag, lookup } from '../../storage/lookup-db.js'
 import { getAllTags } from '../../storage/stashapp-db.js';
 
-async function loadStashAppTags() {
+export async function loadStashAppTags() {
   initDB()
   // load tags from stashapp
   const stashAppTags = getAllTags()
@@ -32,4 +32,4 @@ async function loadStashAppTags() {
   lookupDB.close()
 }
 
-loadStashAppTags()
+// loadStashAppTags()

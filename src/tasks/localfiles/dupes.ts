@@ -26,4 +26,4 @@ export function getDupeHashes(): void {
     }
   }
 }
-getDupeHashes()
+// getDupeHashes()

@@ -31,4 +31,3 @@ export function findDifferingFiles() {
   }
   log(`Found ${differingFiles.length} differing files`)
 }
-findDifferingFiles()

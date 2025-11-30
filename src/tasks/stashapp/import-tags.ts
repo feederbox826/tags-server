@@ -59,5 +59,3 @@ async function validateEtag(tag: stashAppDbTag, path: string): Promise<boolean> 
   const etagValid = tag?.md5 && await testEtag(path, tag.md5)
   return Boolean(etagValid)
 }
-
-checkTags()
