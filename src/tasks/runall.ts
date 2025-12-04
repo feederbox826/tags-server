@@ -3,7 +3,7 @@ import debug from 'debug'
 const log = debug('tags:tasks:run-all')
 debug.enable('tags:*')
 log('Starting runall tasks...')
-log("Importint tags from stashapp")
+log("Importing tags from stashapp")
 import { checkTags } from './stashapp/import-tags.js'
 await checkTags()
 // validate stashapp files

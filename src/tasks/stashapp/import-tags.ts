@@ -32,6 +32,11 @@ export async function checkTags() {
     const match = getTagByID(Number(tag.id))
     // if match, check etag, else add
     if (match) {
+      // update name if changed
+      if (match.name !== tag.name) {
+        log(`Update name for tag ${tag.id}: ${match.name} -> ${tag.name}`)
+        stashAppDB.prepare(`UPDATE tags SET name = ? WHERE id = ?`).run(tag.name, tag.id)
+      }
       const validEtag = await validateEtag(match, tag.image_path)
       if (validEtag) continue
     }
