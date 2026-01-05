@@ -23,6 +23,21 @@ type partialB2File = {
   contentSha1: string,
 }
 
+function getLocalFileName (sourceFile: string): string {
+  const replacements: [RegExp, string][] = [
+    [/\.\w+\.txt$/, ".webp"], // .*.txt for images
+    [/\.txt$/, ".webm"], // txt for videos
+    [/\.prproj$/, ".webm"], // proproj for videos
+    [/\.\w+$/, ".webp"], // other extensions for images,
+  ]
+  for (const [pattern, replacement] of replacements) {
+    if (sourceFile.match(pattern)) {
+      return sourceFile.replace(pattern, replacement)
+    }
+  }
+  return sourceFile // return original if no patterns matched
+}
+
 // auth to b2
 export async function getSourceFiles() {
   await b2.authorize()
@@ -37,11 +52,7 @@ export async function getSourceFiles() {
     if (b2File.action === 'folder' || file.fileName.endsWith("/")) continue
     // check if source file exists, strip sources prefix
     const filename = b2File.fileName.replace(/^sources\//, '')
-    // txt to webm (video)
-    // jpeg / * to webp (image)
-    const localFileName =  filename.endsWith('.txt')
-        ? filename.replace('.txt', '.webm')
-        : filename.replace(/\.\w+$/, '.webp')
+    const localFileName = getLocalFileName(filename)
     const localFile = getLocalFileByPath(localFileName)
     if (localFile) {
       // log(`Found source file: ${b2File.fileName}`)
@@ -51,4 +62,9 @@ export async function getSourceFiles() {
     }
   }
 }
-// getSourceFiles()
+
+console.log(import.meta)
+
+if (import.meta.main) {
+  getSourceFiles()
+}
