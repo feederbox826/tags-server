@@ -25,10 +25,10 @@ type partialB2File = {
 
 function getLocalFileName (sourceFile: string): string {
   const replacements: [RegExp, string][] = [
-    [/\.\w+\.txt$/, ".webp"], // .*.txt for images
+    [/\.(jpe?g|jfif|png|webp|svg|avif)\.txt$/, ".webp"], // .*.txt for images
     [/\.txt$/, ".webm"], // txt for videos
     [/\.prproj$/, ".webm"], // proproj for videos
-    [/\.\w+$/, ".webp"], // other extensions for images,
+    [/\.(jpe?g|jfif|png|webp|svg|avif)$/, ".webp"], // other extensions for images,
   ]
   for (const [pattern, replacement] of replacements) {
     if (sourceFile.match(pattern)) {
