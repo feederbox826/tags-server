@@ -55,15 +55,14 @@ export async function getSourceFiles() {
     const localFileName = getLocalFileName(filename)
     const localFile = getLocalFileByPath(localFileName)
     if (localFile) {
-      // log(`Found source file: ${b2File.fileName}`)
+      // only log on new src found
+      if (!localFile.src) log(`Found source file: ${b2File.fileName}`)
       localFileAddSource(localFile.path)
     } else {
       error(`Orphaned source: ${b2File.fileName}`)
     }
   }
 }
-
-console.log(import.meta)
 
 if (import.meta.main) {
   getSourceFiles()
