@@ -3,7 +3,7 @@ const log = debug('tags:tasks:import-tags')
 debug.enable('tags:*')
 import { tqdm } from "ts-tqdm"
 
-import { getTags, getEtag, testEtag } from '../..//api/stashapp.js'
+import { getTags, getEtag, testEtag, stashAppTag } from '../../api/stashapp.js'
 import { stashAppDB, stashAppDbTag, initDB, upsertTag, refresh } from '../../storage/stashapp-db.js'
 import { EXCLUDED_TAG_PREFIX } from '../../util/config.js'
 
@@ -27,33 +27,34 @@ export async function checkTags() {
   initDB()
   const tags = await getTags()
   for (const tag of tqdm(tags)) {
+    const stashTag = tag as stashAppTag
     // preliminary ignore checks
-    if (!tag?.image_path || tag.image_path?.includes("default=true")) continue
-    const match = getTagByID(Number(tag.id))
+    if (!stashTag?.image_path || stashTag.image_path?.includes("default=true")) continue
+    const match = getTagByID(Number(stashTag.id))
     // if match, check etag, else add
     if (match) {
       // update name if changed
-      if (match.name !== tag.name) {
-        log(`Update name for tag ${tag.id}: ${match.name} -> ${tag.name}`)
-        stashAppDB.prepare(`UPDATE tags SET name = ? WHERE id = ?`).run(tag.name, tag.id)
+      if (match.name !== stashTag.name) {
+        log(`Update name for tag ${stashTag.id}: ${match.name} -> ${stashTag.name}`)
+        stashAppDB.prepare(`UPDATE tags SET name = ? WHERE id = ?`).run(stashTag.name, stashTag.id)
       }
-      const validEtag = await validateEtag(match, tag.image_path)
+      const validEtag = await validateEtag(match, stashTag.image_path)
       if (validEtag) continue
     }
     // no match or if match outdated, add/update
-    const ignore = tag.ignore_auto_tag || shouldIgnoreName(tag.name)
-    const etag = await getEtag(tag.image_path)
+    const ignore = stashTag.ignore_auto_tag || shouldIgnoreName(stashTag.name)
+    const etag = await getEtag(stashTag.image_path)
     if (!etag) {
-      log(`Failed to get ETag for ${tag.image_path}`)
+      log(`Failed to get ETag for ${stashTag.image_path}`)
       continue
     }
     if (match) {
-      log(`Update ETag for tag ${tag.id} - µMD5: ${etag}`)
-      updateTag(Number(tag.id), tag.image_path, etag)
+      log(`Update ETag for tag ${stashTag.name} - µMD5: ${etag}`)
+      updateTag(Number(stashTag.id), stashTag.image_path, etag)
       continue
     } else {
-      log(`New tag: ${tag.name} (${tag.id}) - µMD5: ${etag}`)
-      upsertTag(tag.name, tag.id, ignore, tag.image_path || null, etag)
+      log(`New tag: ${stashTag.name} (${stashTag.id}) - µMD5: ${etag}`)
+      upsertTag(stashTag.name, stashTag.id, ignore, stashTag.image_path || null, etag)
     }
   }
   log(`Done. Total tags: ${tags.length}`)

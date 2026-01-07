@@ -20,7 +20,7 @@ const stashappQuery = (query: string, variables = {}) =>
 
 // END declarations
 
-type stashAppTag = {
+export type stashAppTag = {
   name: string,
   aliases: string[],
   image_path?: string | null,
