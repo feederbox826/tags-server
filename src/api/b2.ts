@@ -14,6 +14,7 @@ async function listFiles(bucketId: string, startFileName: string = '') {
     bucketId,
     maxFileCount: 1000,
     startFileName,
+    prefix: "sources/"
   })
   return res.data
 }
