@@ -2,9 +2,8 @@ import debug from 'debug'
 const log = debug('tags:api:stashapp')
 
 import axios from 'axios'
-import { USER_AGENT, ALLOWED_MIME_TYPES } from '../util/config.js'
+import { USER_AGENT } from '../util/config.js'
 import { Agent as httpsAgent } from 'https'
-import { toMiniHash, toFullHash } from '../util/miniHash.js'
 
 const stashappClient = axios.create({
   headers: { 'ApiKey': process.env.STASHAPP_API_KEY, 'User-Agent': USER_AGENT },
@@ -38,19 +37,19 @@ export async function getTags(): Promise<stashAppTag[]> {
   return response.data.data.findTags.tags
 }
 
-export async function getEtag(path: string): Promise<string | null> {
-  const md5req = await stashappClient.get(path)
-  // check mimetype before caching
-  const contentType = md5req.headers['content-type'] || ''
-  if (!ALLOWED_MIME_TYPES.includes(contentType)) {
-    log(`Rejected content-type ${contentType} for ${path}`)
-    return null
+export async function getEtags(): Promise<Map<number, string>> {
+  const query = `mutation {
+  querySQL(sql: "SELECT id, image_blob FROM tags") {
+    rows
+  }}`
+  const response = await stashappQuery(query)
+  const etags: Map<number, string> = new Map()
+  for (const row of response.data.data.querySQL.rows) {
+    const id: number = row[0]
+    const blobPath: string | "null" = row[1]
+    if (blobPath != "null") {
+      etags.set(id, blobPath)
+    }
   }
-  const etag: string | undefined = md5req.headers['etag']
-  return etag ? toMiniHash(etag.replace('"', '')) : null // remove quotes
-}
-
-export async function testEtag(path: string, etag: string): Promise<boolean> {
-  const req = await stashappClient.get(path, { headers: { 'If-None-Match': `"${toFullHash(etag)}"` } })
-  return req.status === 304
+  return etags
 }

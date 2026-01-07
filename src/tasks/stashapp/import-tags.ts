@@ -3,9 +3,10 @@ const log = debug('tags:tasks:import-tags')
 debug.enable('tags:*')
 import { tqdm } from "ts-tqdm"
 
-import { getTags, getEtag, testEtag, stashAppTag } from '../../api/stashapp.js'
+import { getTags, getEtags, stashAppTag } from '../../api/stashapp.js'
 import { stashAppDB, stashAppDbTag, initDB, upsertTag, refresh } from '../../storage/stashapp-db.js'
 import { EXCLUDED_TAG_PREFIX } from '../../util/config.js'
+import { toMiniHash } from '../../util/miniHash.js'
 
 const shouldIgnoreName = (name: string): boolean => {
   for (const prefix of EXCLUDED_TAG_PREFIX) {
@@ -26,11 +27,19 @@ function updateTag(id: number, path: string, md5: string): void {
 export async function checkTags() {
   initDB()
   const tags = await getTags()
+  const etagMap = await getEtags()
   for (const tag of tqdm(tags)) {
     const stashTag = tag as stashAppTag
     // preliminary ignore checks
     if (!stashTag?.image_path || stashTag.image_path?.includes("default=true")) continue
     const match = getTagByID(Number(stashTag.id))
+    // fetch etag directly from db
+    const etag = etagMap.get(Number(stashTag.id))
+    if (!etag) {
+      log(`No ETag found for tag ${stashTag.name} (${stashTag.id})`)
+      continue
+    }
+    const miniEtag = toMiniHash(etag)
     // if match, check etag, else add
     if (match) {
       // update name if changed
@@ -38,30 +47,20 @@ export async function checkTags() {
         log(`Update name for tag ${stashTag.id}: ${match.name} -> ${stashTag.name}`)
         stashAppDB.prepare(`UPDATE tags SET name = ? WHERE id = ?`).run(stashTag.name, stashTag.id)
       }
-      const validEtag = await validateEtag(match, stashTag.image_path)
-      if (validEtag) continue
-    }
-    // no match or if match outdated, add/update
-    const ignore = stashTag.ignore_auto_tag || shouldIgnoreName(stashTag.name)
-    const etag = await getEtag(stashTag.image_path)
-    if (!etag) {
-      log(`Failed to get ETag for ${stashTag.image_path}`)
+      // validate etag matches
+      const validEtag = miniEtag == match?.md5;
+      // if no match, update
+      if (!validEtag) {
+        log(`Update ETag for tag ${stashTag.name} - µMD5: ${miniEtag}`)
+        updateTag(Number(stashTag.id), stashTag.image_path, miniEtag || '')
+      }
       continue
-    }
-    if (match) {
-      log(`Update ETag for tag ${stashTag.name} - µMD5: ${etag}`)
-      updateTag(Number(stashTag.id), stashTag.image_path, etag)
-      continue
-    } else {
-      log(`New tag: ${stashTag.name} (${stashTag.id}) - µMD5: ${etag}`)
-      upsertTag(stashTag.name, stashTag.id, ignore, stashTag.image_path || null, etag)
+    } else { // no match, add new
+      const ignore = stashTag.ignore_auto_tag || shouldIgnoreName(stashTag.name)
+      log(`New tag: ${stashTag.name} (${stashTag.id}) - µMD5: ${miniEtag}`)
+      upsertTag(stashTag.name, stashTag.id, ignore, stashTag.image_path || null, miniEtag)
     }
   }
   log(`Done. Total tags: ${tags.length}`)
   refresh()
-}
-
-async function validateEtag(tag: stashAppDbTag, path: string): Promise<boolean> {
-  const etagValid = tag?.md5 && await testEtag(path, tag.md5)
-  return Boolean(etagValid)
 }
