@@ -20,7 +20,8 @@ export function inittDB() {
       vid BOOLEAN NOT NULL DEFAULT 0,
       img BOOLEAN NOT NULL DEFAULT 0,
       svg BOOLEAN NOT NULL DEFAULT 0,
-      height INTEGER DEFAULT 0
+      height INTEGER DEFAULT 0,
+      duration INTEGER DEFAULT NULL
     )`)
   db.exec(`CREATE INDEX IF NOT EXISTS idx_name ON localfiles (name);`)
   db.exec(`CREATE INDEX IF NOT EXISTS idx_sha1 ON localfiles (sha1);`)
@@ -48,6 +49,7 @@ export type LocalFileEntry = {
   img: boolean,
   svg: boolean
   height?: number,
+  duration?: number,
 }
 
 export const localDB = db

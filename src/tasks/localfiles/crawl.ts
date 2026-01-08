@@ -9,6 +9,8 @@ import * as fsWalk from '@nodelib/fs.walk'
 import { imageSizeFromFile } from 'image-size/fromFile'
 import fs from 'fs/promises'
 import path from 'path'
+// @ts-ignore
+import VideoLength from "video-length"
 
 import { localDB, inittDB, LocalFileEntry } from '../../storage/local-db.js'
 import { multiHash } from '../../util/multihash.js'
@@ -35,8 +37,8 @@ function checkLocalFiles(path: string): void {
 
 function addLocalFiles(files: LocalFileEntry[]): void {
   const insert = localDB.prepare(`
-    INSERT OR REPLACE INTO localfiles (path, name, filename, sha1, md5, size, last_modified, alt, vid, img, svg)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO localfiles (path, name, filename, sha1, md5, size, last_modified, alt, vid, img, svg, height, duration)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   const insertMany = localDB.transaction((files: LocalFileEntry[]) => {
     for (const file of files) {
@@ -52,6 +54,8 @@ function addLocalFiles(files: LocalFileEntry[]): void {
         file.vid ? 1 : 0,
         file.img ? 1 : 0,
         file.svg ? 1 : 0,
+        file.height || 0,
+        file.duration || null,
       )
     }
   })
@@ -86,6 +90,17 @@ async function crawlFile(directory: string, file: fsWalk.Entry): Promise<LocalFi
       fileEntry.height = dimensions.height
     }
   }
+  // if video, get duration and height
+  if (fileEntry.vid) {
+    // use ffprobe to get duration
+    try {
+      const info = await VideoLength(realPath, { extended: true, bin: "E:\\Applications\\bin\\MediaInfo.exe" })
+      fileEntry.duration = Math.floor(info.duration)
+      fileEntry.height = info.height
+    } catch {
+      log(`mediainfo failed for file: ${realPath}`)
+    }
+  }
   return fileEntry
 }
 
@@ -99,8 +114,9 @@ export async function crawl(directory: string): Promise<void> {
     if (file.dirent.isFile()) {
       // look for match and check mtime and size
       const cleanPath = file.path.toString().replace(/\\/g, '/')
-      const existing = localDB.prepare(`SELECT last_modified, size FROM localfiles WHERE path = ?`).get(cleanPath) as LocalFileEntry
-      if (existing) {
+      const existing = localDB.prepare(`SELECT svg, img, vid, last_modified, size, height, duration FROM localfiles WHERE path = ?`).get(cleanPath) as LocalFileEntry
+      const isUpToDate = existing && (existing.svg || (existing.img && existing.height) || (existing.vid && existing.duration && existing.height))
+      if (isUpToDate) {
         const lmCheck = file.stats.mtimeMs / 1000 == existing.last_modified
         const sizeCheck = file.stats.size === existing.size
         if (lmCheck && sizeCheck) {
