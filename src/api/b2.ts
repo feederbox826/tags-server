@@ -12,7 +12,7 @@ const BUCKET_PREFIX = process.env.B2_BUCKET_PREFIX || ''
 async function listFiles(bucketId: string, startFileName: string = '') {
   const res = await b2.listFileNames({
     bucketId,
-    maxFileCount: 1000,
+    maxFileCount: 10000,
     startFileName,
     prefix: "sources/"
   })
