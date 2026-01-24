@@ -78,7 +78,7 @@ async function crawlFile(directory: string, file: fsWalk.Entry): Promise<LocalFi
     md5,
     size: file.stats.size,
     last_modified: (last_modified / 1000), // seconds
-    alt: basePath.includes('\\alt\\') || basePath.includes('/alt/'),
+    alt: basePath.match(/(^|\\|\/)alt(\\|\/)/) ? true : false,
     vid: basePath.endsWith('.webm'),
     img: basePath.endsWith('.webp'),
     svg: basePath.endsWith('.svg'),
