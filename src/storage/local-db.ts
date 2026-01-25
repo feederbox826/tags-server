@@ -26,6 +26,15 @@ export function inittDB() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_name ON localfiles (name);`)
   db.exec(`CREATE INDEX IF NOT EXISTS idx_sha1 ON localfiles (sha1);`)
   db.exec(`CREATE INDEX IF NOT EXISTS idx_md5 ON localfiles (md5);`)
+  // create src db
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS b2_src (
+      filename TEXT PRIMARY KEY,
+      sha1 TEXT,
+      md5 TEXT
+    )`)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_b2src_sha1 ON b2_src (sha1);`)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_b2src_md5 ON b2_src (md5);`)
 }
 
 export async function refresh() {
@@ -50,6 +59,11 @@ export type LocalFileEntry = {
   svg: boolean
   height?: number,
   duration?: number,
+}
+
+export type srcEntry = {
+  filename: string,
+  sha1: string
 }
 
 export const localDB = db
