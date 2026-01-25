@@ -4,7 +4,7 @@ const log = debug('tags:tasks:b2:findsrc')
 const error = debug('tags:tasks:b2:findsrc:error')
 debug.enable('tags:*')
 
-import b2, { listAllFiles } from '../../api/b2.js'
+import { authorize, listAllFiles } from '../../api/b2.js'
 import { localDB, LocalFileEntry } from '../../storage/local-db.js'
 import { PathLike } from 'fs'
 
@@ -40,7 +40,7 @@ function getLocalFileName (sourceFile: string): string {
 
 // auth to b2
 export async function getSourceFiles() {
-  await b2.authorize()
+  await authorize()
   const sourceFiles = await listAllFiles()
   for (const file of sourceFiles) {
     const b2File: partialB2File = {

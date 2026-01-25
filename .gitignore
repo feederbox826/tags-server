@@ -3,6 +3,7 @@ node_modules/
 dist/
 # secrets
 .env
+.b2_auth.json
 # database
 db/*
 # tags
