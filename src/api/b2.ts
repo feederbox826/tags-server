@@ -13,6 +13,8 @@ const b2 = new B2({
 
 let authCache = fs.existsSync(AUTH_FILE) ? JSON.parse(fs.readFileSync(AUTH_FILE, 'utf-8')) : null
 
+let authPromise: Promise<any> | null = null
+
 export const authorize = async () => {
   // check auth token cache
   // check expiry
@@ -22,15 +24,23 @@ export const authorize = async () => {
   }
   console.log('B2 auth token expired or not found, authorizing...')
   // else authorize and cache
-  return b2.authorize()
+  // reuse auth promise for concurrent
+  if (authPromise) return authPromise
+
+  authPromise = b2.authorize()
     .then(res => {
       authCache = {
         ...res.data,
         expiryTimestamp: Date.now() + TOKEN_LIFETIME
       }
       fs.writeFileSync(AUTH_FILE, JSON.stringify(authCache), 'utf-8')
+      authPromise = null
       return res.data
+    }).catch(err => {
+      authPromise = null
+      throw err
     })
+  return authPromise
 }
 
 const SOURCE_BUCKET_ID = process.env.B2_SOURCE_BUCKET_ID || ''
