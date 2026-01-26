@@ -3,7 +3,7 @@ import debug from 'debug'
 const log = debug('tags:tasks:b2:refreshsrc')
 debug.enable('tags:*')
 
-import { authorize, listAllFiles } from '../../api/b2.js'
+import { listAllFiles } from '../../api/b2.js'
 import { toMiniHash } from '../../util/miniHash.js'
 import { localDB, srcEntry } from '../../storage/local-db.js'
 
@@ -16,7 +16,6 @@ type partialB2File = {
 
 // auth to b2
 export async function refreshSrc() {
-  await authorize()
   const localSourceFiles = localDB.prepare('SELECT * FROM b2_src').all() as srcEntry[]
   const b2SourceFiles = await listAllFiles()
   const insertStmt = localDB.prepare('INSERT OR REPLACE INTO b2_src (filename, sha1, md5) VALUES (?, ?, ?)')

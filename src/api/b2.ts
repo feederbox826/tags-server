@@ -1,7 +1,9 @@
 // @ts-nocheck
 import B2 from "backblaze-b2";
 import fs from 'fs';
+import debug from 'debug'
 
+const log = debug('tags:api:b2')
 import { saveAuthContext } from 'backblaze-b2/lib/utils.js'
 const AUTH_FILE = './.b2_auth.json'
 const TOKEN_LIFETIME = 23 * 60 * 60 * 1000 // 24 hours (-1 for safety)
@@ -19,10 +21,11 @@ export const authorize = async () => {
   // check auth token cache
   // check expiry
   if (authCache?.expiryTimestamp > Date.now()) {
+    log('Using cached B2 auth token')
     saveAuthContext(b2, authCache)
     return authCache
   }
-  console.log('B2 auth token expired or not found, authorizing...')
+  log('B2 auth token expired or not found, authorizing...')
   // else authorize and cache
   // reuse auth promise for concurrent
   if (authPromise) return authPromise
