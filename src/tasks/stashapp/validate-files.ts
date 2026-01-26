@@ -16,13 +16,15 @@ export function findDifferingFiles() {
   for (const tag of stashappTags) {
     if (!tag.path || !tag.md5) continue
     const localFile = findLocalFileByMD5(tag.md5)
-    // console.log(tag, localFile)
     // if file is alt, throw error
     if (!localFile) {
       log(`Tag ${tag.name} (${tag.id}) has no matching local file for md5: ${tag.md5}`)
       differingFiles.push({ tag, localFile })
     } else if (localFile.alt) {
       log(`Tag ${tag.name} (${tag.id}) matches alt file: ${localFile.path}`)
+      differingFiles.push({ tag, localFile })
+    } else if (String(localFile.path).startsWith('lowres/')) {
+      log(`Tag ${tag.name} (${tag.id}) matches lowres file: ${localFile.path}`)
       differingFiles.push({ tag, localFile })
     } else if (localFile.name !== cleanFileName(tag.name)) {
       log(`Tag ${tag.name} (${tag.id}) name mismatch with file: ${localFile.name} (${localFile.path})`)
