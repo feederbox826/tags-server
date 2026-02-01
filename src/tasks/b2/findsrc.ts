@@ -43,8 +43,8 @@ export async function getSourceFiles() {
   log("Fetching source files from B2...")
   const sourceFiles = await listAllFiles()
   // validate all files with sources have sources
-  // const filesWithSources = localDB.prepare('SELECT * FROM localfiles WHERE src = 1').all() as LocalFileEntry[]
-  // const validatedLocalFiles = [] as LocalFileEntry[]
+  const filesWithSources = localDB.prepare('SELECT * FROM localfiles WHERE src = 1').all() as LocalFileEntry[]
+  const validatedLocalFiles = [] as LocalFileEntry[]
   for (const file of sourceFiles) {
     const b2File: partialB2File = {
       action: file.action,
