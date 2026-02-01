@@ -42,6 +42,9 @@ function getLocalFileName (sourceFile: string): string {
 export async function getSourceFiles() {
   log("Fetching source files from B2...")
   const sourceFiles = await listAllFiles()
+  // validate all files with sources have sources
+  // const filesWithSources = localDB.prepare('SELECT * FROM localfiles WHERE src = 1').all() as LocalFileEntry[]
+  // const validatedLocalFiles = [] as LocalFileEntry[]
   for (const file of sourceFiles) {
     const b2File: partialB2File = {
       action: file.action,
@@ -58,10 +61,18 @@ export async function getSourceFiles() {
       // only log on new src found
       if (!localFile.src) log(`Found source file: ${b2File.fileName}`)
       localFileAddSource(localFile.path)
+      validatedLocalFiles.push(localFile)
     } else {
       error(`Orphaned source: ${b2File.fileName}`)
     }
   }
+  // log any files that are marked as src but not found in b2
+  // for (const localFile of filesWithSources) {
+  //   if (!validatedLocalFiles.find(f => f.path === localFile.path)) {
+  //     error(`Missing source file in B2 for local file: ${localFile.path}`)
+  //   }
+  // }
+  log("Source file check complete.")
 }
 
 if (import.meta.main) {
