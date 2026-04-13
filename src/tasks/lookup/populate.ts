@@ -5,9 +5,9 @@ const error = debug('tags:tasks:lookup:populate:error')
 debug.enable('tags:*')
 
 // set up db
-import { getStashTag } from '../../api/stashdb.js';
 import { lookupDB, initDB, upsertTag, lookup } from '../../storage/lookup-db.js'
 import { getAllTags } from '../../storage/stashapp-db.js';
+import { nameLookup } from '../../api/stash-lookup.js';
 
 export async function loadStashAppTags() {
   initDB()
@@ -20,13 +20,13 @@ export async function loadStashAppTags() {
     const dbMatch = lookup(tag.name)
     if (dbMatch) continue
     // lookup in stashdb
-    const stashDBRes = await getStashTag(tag.name)
-    if (stashDBRes) {
-      // add to db
-      upsertTag(stashDBRes.id, stashDBRes.name, stashDBRes.aliases)
-      log(`Upserted tag: ${stashDBRes.name} (${stashDBRes.id}) with aliases: ${stashDBRes.aliases.join(", ")}`)
+    const lookupRes = await nameLookup(tag.name).catch(err => null)
+    const match = lookupRes?.data?.[0]
+    if (match) {
+      upsertTag(match.uuid, match.name, match.aliases)
+      log(`Upserted tag from lookup: ${match.name} (${match.uuid}) with aliases: ${match.aliases.join(", ")}`)
     } else {
-      error(`Tag not found in StashDB: ${tag.name}`)
+      error("Tag not found in lookup service: " + tag.name)
     }
   }
   lookupDB.close()
