@@ -19,12 +19,24 @@ const stashappQuery = (query: string, variables = {}) =>
 
 // END declarations
 
+export type stashAppStashId = {
+  stash_id: string
+  endpoint: string
+}
+
 export type stashAppTag = {
   name: string,
   aliases: string[],
   image_path?: string | null,
   id: string,
-  ignore_auto_tag: boolean
+  ignore_auto_tag: boolean,
+  stash_ids?: stashAppStashId[]
+}
+
+export function stashdbTagId(tag: stashAppTag): string | undefined {
+  const endpoint = 'https://stashdb.org/graphql'
+  return tag.stash_ids?.find(s => s.endpoint === endpoint)?.stash_id
+    ?? tag.stash_ids?.[0]?.stash_id
 }
 
 export async function getTags(): Promise<stashAppTag[]> {
@@ -32,6 +44,7 @@ export async function getTags(): Promise<stashAppTag[]> {
     findTags(filter: { per_page: -1 }) {
     tags {
       name aliases image_path id ignore_auto_tag
+      stash_ids { stash_id endpoint }
     }}}`
   const response = await stashappQuery(query)
   return response.data.data.findTags.tags

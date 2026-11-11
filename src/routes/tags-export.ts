@@ -1,7 +1,7 @@
 import { localDB, LocalFileEntry } from "../storage/local-db.js"
-import { lookupDB, LookupEntry } from "../storage/lookup-db.js"
 import { stashAppDB } from "../storage/stashapp-db.js"
 import { FastifyRequest, FastifyReply } from "fastify"
+import { nameLookup, LookupTag } from "../api/stash-lookup.js"
 
 type tagMedia = {
   name: string,
@@ -20,7 +20,6 @@ type exportTag = {
 
 type exportTags = Record<string, exportTag[]>
 
-
 const createMediaType = (file: LocalFileEntry): tagMedia => ({
   name: file.filename,
   alt: Boolean(file.alt),
@@ -28,11 +27,17 @@ const createMediaType = (file: LocalFileEntry): tagMedia => ({
   height: file.svg ? "∞" : file.height || undefined
 })
 
-// construct export object
-function createExport(): exportTags {
-  // get all names
+async function resolveTag(name: string): Promise<LookupTag | undefined> {
+  const attempts = [name, name.replace(/_/g, ' ')]
+  for (const attempt of attempts) {
+    const res = await nameLookup(attempt).catch(() => null)
+    const match = res?.data?.[0]
+    if (match) return match
+  }
+}
+
+async function createExport(): Promise<exportTags> {
   const allNames = localDB.prepare(`SELECT DISTINCT name FROM localfiles`).all() as { name: string }[]
-  // iterate through names
   const exportObj: exportTags = {}
   for (const entry of allNames) {
     const files = localDB.prepare(`SELECT * FROM localfiles WHERE name = ? AND alt = 0`).all(entry.name) as LocalFileEntry[]
@@ -42,12 +47,10 @@ function createExport(): exportTags {
       if (type === 'unknown') continue
       tagEntry[type] = createMediaType(file)
     }
-    // pull name, stashid from lookup
-    const lookup = lookupDB.prepare(`SELECT * FROM lookup WHERE filename = ?`).get(entry.name) as LookupEntry | undefined
+    const lookup = await resolveTag(entry.name)
     if (lookup) {
-      tagEntry.stashid = lookup.stashid
-      tagEntry.aliases = (lookupDB.prepare(`SELECT alias FROM aliases WHERE stashid = ?`).all(lookup.stashid) as { alias: string }[]).map(a => a.alias)
-      // use name to find ignore
+      tagEntry.stashid = lookup.uuid
+      tagEntry.aliases = lookup.aliases
       const stashappIgnore = stashAppDB.prepare(`SELECT ignore FROM tags WHERE name = ?`).get(lookup.name) as { ignore: number } | undefined
       tagEntry.ignore = Boolean(stashappIgnore?.ignore ?? false)
     }
@@ -57,6 +60,6 @@ function createExport(): exportTags {
 }
 
 export async function tagsExportHandler(request: FastifyRequest, reply: FastifyReply) {
-  const exportObj = createExport()
+  const exportObj = await createExport()
   return reply.send(exportObj)
 }
